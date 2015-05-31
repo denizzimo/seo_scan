@@ -1,0 +1,13 @@
+.seo-scan {
+  margin: 15px 0;
+  padding-top: 15px;
+  border-top: 1px solid grey;
+}
+
+.seo-scan-pass em {
+  color: green;
+}
+
+.seo-scan-fail em {
+  color: red;
+}

@@ -1,0 +1,142 @@
+<?php
+
+/*
+ * Implements hook_permission().
+ */
+function seo_scan_permission() {
+  return array(
+    'administer seo scan module' => array(
+      'title' => t('Administer SEO Scan Module'),
+      'description' => t('Perform SEO Scan procedures on nodes.'),
+    ),
+  );
+}
+
+/*
+ * Implements hook_menu().
+ */
+function seo_scan_menu() {
+  $items['node/%node/seo-scan'] = array(
+    'title' => t('SEO Scan'),
+    'description' => t('Scans the current node for SEO best practices'),
+    'page callback' => 'seo_scan_node',
+    'page arguments' => array(1),
+    'access arguments' => array('administer seo scan'),
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+  );
+  
+  return $items;
+}
+
+/*
+ * Implements hook_theme().
+ */
+function seo_scan_theme() {
+ return array(
+   'seo_scan_item' => array(
+     'arguments' => array('title' => NULL, 'value' => NULL, 'message' => NULL, 'class' => NULL),
+     'template' => 'seo-scan-item',
+   ),
+ );
+}
+
+/*
+ * Preprocess variables passed to tpl files for added security
+ */
+function seo_scan_preprocess_seo_scan_item(&$variables) {
+  $variables['title'] = check_plain($variables['title']);
+  $variables['value'] = check_plain($variables['value']);
+  $variables['message'] = check_plain($variables['message']);
+}
+
+
+/*
+ * Builds the output for the SEO Scan
+ */
+function seo_scan_node($node) {
+  
+  $content = array();
+  
+  $content['description'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h2>' . t('SEO Scan report for node @nid:', array('@nid' => $node->nid)) . '</h2>',
+    '#prefix' => '<p>',
+    '#suffix' => '</p>',
+  );
+  
+  $metatags = _seo_scan_meta_load($node);
+  
+  foreach ($metatags as $metatag) {
+    $content[] = array(
+      '#type' => 'markup',
+      '#markup' => theme('seo_scan_item', $metatag),
+    );
+  }
+  
+  return $content;
+}
+
+/*
+ * Builds an array of all Metatag's
+ */
+function _seo_scan_meta_load($node) {
+  
+  $metatags = array();
+  
+  if (isset($node->metatags[LANGUAGE_NONE])) {
+    foreach ($node->metatags[LANGUAGE_NONE] as $delta => $metatag) {
+
+      $length = strlen($metatag['value']);
+      $message = '';
+      $class = '';
+
+      if ($delta == 'title') {
+        if ($length > 55) {
+          $message = t('Ohh No! Your title is greater than 55 characters');
+          $class = 'seo-scan-fail';
+        }
+        elseif ($length == 0) {
+          $message = t('Ohh No! You did not specifiy a @title', array('@title' => $delta));
+          $class = 'seo-scan-fail';
+        }
+        else {
+          $message = t('Great! Your title is less than 56 characters');
+          $class = 'seo-scan-pass';
+        }
+      }
+      elseif ($delta == 'description') {
+        if ($length > 160) {
+          $message = t('Ohh No! Your description is greater than 160 characters');
+          $class = 'seo-scan-fail';
+        }
+        elseif ($length == 0) {
+          $message = t('Ohh No! You did not specifiy a @title', array('@title' => $delta));
+          $class = 'seo-scan-fail';
+        }
+        else {
+          $message = t('Great! Your description is less than 161 characters');
+          $class = 'seo-scan-pass';
+        }
+      }
+
+      $metatags[$delta] = array(
+        'title' => ucfirst($delta) . " ($length)",
+        'value' => $metatag['value'],
+        'message' => $message,
+        'class' => $class,
+      );
+    }
+  }
+  
+  else {
+    $metatags['emtpy'] = array(
+      'title' => '',
+      'value' => '',
+      'message' => 'This node does not have any metatags',
+      'class' => '',
+    );
+  }
+  
+  return $metatags;
+}

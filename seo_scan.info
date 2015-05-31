@@ -1,0 +1,6 @@
+name = Seo Scan
+description = View SEO details for nodes
+core = 7.x
+
+dependencies[] = metatag
+stylesheets[all][] = seo_scan.css
